@@ -1,0 +1,21 @@
+services:
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower
+    environment:
+      - TZ=America/New_York
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_NOTIFICATION_EMAIL_FROM=${EMAIL_FROM}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=${EMAIL_SERVER_PASSWORD}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=${EMAIL_SERVER_PORT}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=${EMAIL_SERVER_USER}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER=${EMAIL_SERVER}
+      - WATCHTOWER_NOTIFICATION_EMAIL_TO=${EMAIL_TO}
+      - WATCHTOWER_NOTIFICATIONS=email
+      - WATCHTOWER_SCHEDULE=* 2 * * 0
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro

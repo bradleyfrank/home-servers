@@ -1,0 +1,17 @@
+- name: Configure app server
+  hosts: app
+  tasks:
+    - name: Start Docker service
+      ansible.builtin.systemd:
+        state: started
+        enabled: true
+        masked: false
+        name: docker.service
+      tags: services
+
+    - name: Nextcloud cronjob
+      ansible.builtin.cron:
+        name: nextcloud-cron
+        minute: "*/5"
+        job: docker exec --user www-data nextcloud php -d memory_limit=-1 -f /var/www/html/cron.php
+      tags: backup

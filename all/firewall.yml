@@ -1,0 +1,11 @@
+---
+
+ufw_rules:
+  - desc: allow ssh
+    port: ssh
+  - desc: allow http
+    port: http
+  - desc: allow https
+    port: https
+  - desc: allow cockpit
+    name: cockpit

@@ -1,0 +1,46 @@
+services:
+  plex:
+    container_name: plex
+    environment:
+      - ADVERTISE_IP="${IP_ADDRESS}:32400"
+      - HOSTNAME="docker-plex"
+      - PLEX_CLAIM=${PLEX_CLAIM}
+      - PLEX_GID="7539"
+      - PLEX_UID="7539"
+      - TZ="America/New_York"
+    hostname: plex
+    image: plexinc/pms-docker:plexpass
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.services.plex.loadbalancer.server.port=32400"
+      # Routers
+      - "traefik.http.routers.nextcloud.service=plex"
+      - "traefik.http.routers.nextcloud.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.nextcloud.entrypoints=https"
+      - "traefik.http.routers.nextcloud.tls=true"
+      - "traefik.http.routers.nextcloud.tls.certresolver=http"
+      # Watchtower
+      - "com.centurylinklabs.watchtower.enable=true"
+
+    networks:
+      - traefik
+    ports:
+      - 1900:1900/udp
+      - 3005:3005/tcp
+      - 8324:8324/tcp
+      - 32400:32400/tcp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+      - 32469:32469/tcp
+    restart: always
+    volumes:
+      - /data/appdata/plex:/config
+      - /data/cache/plex:/transcode
+      - /data/userdata/media:/data
+
+networks:
+  traefik:
+    name: traefik

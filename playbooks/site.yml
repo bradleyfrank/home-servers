@@ -1,0 +1,8 @@
+- name: Import bootstrap playbook
+  ansible.builtin.import_playbook: app-server.yml
+
+- name: Import app-server playbook
+  ansible.builtin.import_playbook: app-server.yml
+
+- name: Import syncoid playbook
+  ansible.builtin.import_playbook: syncoid.yml

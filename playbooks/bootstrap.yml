@@ -1,0 +1,251 @@
+- name: Configure operating system
+  hosts: all
+
+  handlers:
+    - name: Restart journald
+      ansible.builtin.systemd:
+        name: systemd-journald.service
+        state: reloaded
+
+    - name: Restart smartd
+      ansible.builtin.systemd:
+        name: smartmontools.service
+        state: reloaded
+
+    - name: Restart fwupd-refresh
+      ansible.builtin.systemd:
+        name: fwupd-refresh.service
+        state: reloaded
+        daemon_reload: true
+
+  tasks:
+
+    # === System Settings === #
+
+    - name: Update hostname
+      block:
+        - name: Create entry in hosts file
+          ansible.builtin.lineinfile:
+            path: /etc/hosts
+            search_string: "127.0.0.1 {{ ansible_hostname }}"
+            line: "127.0.0.1 {{ inventory_hostname }}"
+            owner: root
+            group: root
+            mode: 0644
+        - name: Set hostname system-wide
+          ansible.builtin.hostname:
+            name: "{{ inventory_hostname }}"
+      tags: hostname
+
+    - name: Add DNS fallback
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#?FallbackDNS='
+        line: FallbackDNS=9.9.9.9 1.1.1.1 8.8.8.8
+      tags: dns
+
+    - name: Set timezone
+      ansible.builtin.file:
+        src: /usr/share/zoneinfo/America/New_York
+        dest: /etc/localtime
+        state: link
+        force: true
+      tags: ntp
+
+
+    # === Packages === #
+
+    - name: Install gpg keys
+      ansible.builtin.apt_key:
+        url: "{{ item['key'] | default(omit) }}"
+        keyring: "{{ item['keyring'] | default(omit) }}"
+        id: "{{ item['id'] | default(omit) }}"
+        keyserver: "{{ item['keyserver'] | default(omit) }}"
+      loop: "{{ repos }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      tags: [packages, gpg]
+
+    - name: Install repositories
+      ansible.builtin.apt_repository:
+        repo: "{{ item['repo'] }}"
+        filename: "{{ item['name'] }}"
+      loop: "{{ repos }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      tags: [packages, repositories]
+
+    - name: Install system packages
+      ansible.builtin.apt:
+        name: "{{ packages }}"
+        state: present
+        install_recommends: true
+        update_cache: true
+      tags: [packages, apt]
+
+
+    # === Services === #
+
+    - name: Start and enable services
+      ansible.builtin.systemd:
+        state: started
+        masked: false
+        name: "{{ item }}"
+      loop: "{{ services }}"
+      tags: services
+
+    - name: Create smartd config file
+      ansible.builtin.template:
+        src: conf/smartd.j2
+        dest: /etc/smartd.conf
+        mode: 0644
+      notify: Restart smartd
+      tags: [smartd, services]
+
+    - name: Enable persistent journald storage
+      community.general.ini_file:
+        path: /etc/systemd/journald.conf
+        section: Journal
+        option: Storage
+        value: auto
+        no_extra_spaces: true
+      notify: Restart journald
+      tags: [logs, services]
+
+    - name: Patch fwupd-refresh
+      block:
+        - name: Create override directory
+          ansible.builtin.file:
+            path: /etc/systemd/system/fwupd-refresh.service.d
+            owner: root
+            group: root
+            mode: 0750
+            state: directory
+        - name: Create override config file
+          ansible.builtin.copy:
+            src: conf/fwupd-refresh.conf
+            dest: /etc/systemd/system/fwupd-refresh.service.d/override.conf
+          notify: Restart fwupd-refresh
+      tags: services
+
+    - name: Mask nfs-blkmap
+      ansible.builtin.systemd:
+        name: nfs-blkmap.service
+        masked: true
+      tags: services
+
+
+    # === Security Settings === #
+
+    - name: Install cockpit ufw profile
+      ansible.builtin.copy:
+        src: conf/cockpit.ufw
+        dest: /etc/ufw/applications.d/cockpit
+        mode: 0644
+      tags: security
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+        default: deny
+        logging: "on"
+      tags: [security, firewall]
+  
+    - name: Allow ports through firewall
+      community.general.ufw:
+        name: "{{ item['name'] | default(omit) }}"
+        port: "{{ item['port'] | default(omit) }}"
+        rule: "{{ item['rule'] | default('allow') }}"
+      loop: "{{ ufw_rules }}"
+      loop_control:
+        label: "{{ item['desc'] }}"
+      tags: [security, firewall]
+
+    - name: Secure SSH settings
+      vars:
+        ssh_kex:
+          - sntrup761x25519-sha512@openssh.com
+          - curve25519-sha256@libssh.org
+          - diffie-hellman-group-exchange-sha256
+        ssh_allow_users: "{{ users | map(attribute='name') | join(' ') }} deploy"
+        sftp_enabled: true
+      ansible.builtin.import_role:
+        name: devsec.hardening.ssh_hardening
+      tags: [security, ssh]
+
+    - name: Secure OS settings
+      ansible.builtin.import_role:
+        name: devsec.hardening.os_hardening
+      tags: security
+
+
+    # === Utilities === #
+
+    - name: Create msmtprc
+      ansible.builtin.template:
+        src: conf/msmtprc.j2
+        dest: /root/.msmtprc
+        mode: 0644
+      tags: smtp
+
+    - name: Install mail.rc config
+      ansible.builtin.copy:
+        src: conf/mail.rc
+        dest: /etc/mail.rc
+        mode: 0644
+      tags: smtp
+
+
+    # === Users === #
+
+    - name: Create local users
+      ansible.builtin.user:
+        name: "{{ item['name'] }}"
+        shell: "{{ item['shell'] | default('/usr/sbin/nologin') }}"
+        groups: "{{ item['groups'] }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      tags: users
+
+    - name: Install dotfiles
+      ansible.builtin.copy:
+        src: "home/{{ item['name'] }}/"
+        dest: "/home/{{ item['name'] }}"
+        owner: "{{ item['name'] }}"
+        group: "{{ item['name'] }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      tags: users
+
+    - name: Add ssh key to authorized_keys
+      ansible.posix.authorized_key:
+        user: "{{ item['name'] }}"
+        key: "{{ item['key'] }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      tags: [users, ssh]
+
+
+    # === ZFS datasets === #
+
+    - name: Create ZFS datasets
+      community.general.zfs:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ zfs['datasets'] }}"
+      when: zfs['datasets'] is defined
+      tags: zfs
+
+
+    # === Backups === #
+
+    - name: Grant syncoid sudo permissions
+      community.general.sudoers:
+        name: syncoid
+        state: present
+        user: syncoid
+        commands: ALL
+      tags: [users, backups]

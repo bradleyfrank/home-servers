@@ -1,0 +1,6 @@
+---
+
+services:
+  - cockpit.socket
+  - systemd-timesyncd.service
+  - smartmontools.service

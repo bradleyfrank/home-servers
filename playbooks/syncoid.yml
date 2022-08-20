@@ -1,0 +1,16 @@
+- name: Setup zfs backups
+  hosts: zfs:!backup
+  tasks:
+    - name: Create cronjobs for syncoid
+      vars:
+        server: "{{ hostvars['home-backup']['ansible_host'] }}"
+        sshkey: /home/syncoid/.ssh/id_ed25519
+        src_pool: "{{ item }}"
+        dest_pool: "backup/{{ item }}"
+      ansible.builtin.cron:
+        name: "syncoid {{ item }} pool"
+        special_time: daily
+        user: syncoid
+        job: "syncoid --sshkey={{ sshkey }} {{ src_pool }} syncoid@{{ server }}:{{ dest_pool }}"
+      loop: "{{ zfs_pools }}"
+      tags: backup

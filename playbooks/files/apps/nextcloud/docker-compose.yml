@@ -1,0 +1,89 @@
+services:
+  ncdb:
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    container_name: ncdb
+    environment:
+      - TZ=America/New_York
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_DATABASE=nextcloud
+      - MARIADB_USER=nextcloud
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+    hostname: ncdb
+    networks:
+      - nextcloud
+    image: mariadb/server:10.3
+    restart: always
+    volumes:
+      - /data/db/nextcloud:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  nextcloud:
+    container_name: nextcloud
+    depends_on:
+      - ncdb
+      - nc-redis
+    environment:
+      - TZ=America/New_York
+      - VIRTUAL_HOST=${DOMAIN}
+      - REDIS_HOST=nc-redis
+      - APACHE_DISABLE_REWRITE_IP=1
+      - TRUSTED_PROXIES=172.18.0.0/16 ${DOMAIN} traefik
+      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN}
+    image: nextcloud:24
+    hostname: nextcloud
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.services.plex.loadbalancer.server.port=80"
+      # Routers
+      - "traefik.http.routers.nextcloud.service=nextcloud"
+      - "traefik.http.routers.nextcloud.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.nextcloud.entrypoints=https"
+      - "traefik.http.routers.nextcloud.tls=true"
+      - "traefik.http.routers.nextcloud.tls.certresolver=http"
+      # Middlewares
+      - "traefik.http.routers.nextcloud-secure.middlewares=nextcloud-headers,nextcloud-dav-redirect"
+      - "traefik.http.middlewares.nextcloud-headers.headers.customFrameOptionsValue=SAMEORIGIN"
+      - "traefik.http.middlewares.nextcloud-headers.headers.contentSecurityPolicy=frame-ancestors 'self' ${DOMAIN}"
+      - "traefik.http.middlewares.nextcloud-headers.headers.stsSeconds=15552000"
+      - "traefik.http.middlewares.nextcloud-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.nextcloud-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.nextcloud-dav-redirect.redirectregex.regex=/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.nextcloud-dav-redirect.redirectregex.replacement=/remote.php/dav/"
+      - "traefik.http.middlewares.nextcloud-dav-redirect.redirectregex.permanent=true"
+      # Watchtower
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      - traefik
+      - nextcloud
+    ports:
+      - 8080:80
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /data/appdata/nextcloud:/var/www/html
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+  nc-redis:
+    container_name: nc-redis
+    environment:
+      - TZ=America/New_York
+    image: redis:5.0
+    networks:
+      - nextcloud
+    restart: always
+    volumes:
+      - /data/cache/nextcloud:/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+networks:
+  traefik:
+    name: traefik
+  nextcloud:
+    name: nextcloud

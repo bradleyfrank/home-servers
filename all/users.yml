@@ -1,0 +1,12 @@
+---
+
+users:
+  - name: bfrank
+    shell: /usr/bin/zsh
+    groups: ['sudo']
+    key: |
+      ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHXi9rxK1HI1v2QOrjupf6XM9evD2vKfw3msmUbWlb7n ansible@francopuccini.casa
+  - name: syncoid
+    groups: ['sudo']
+    key: |
+      ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDaRTj6AedlBlP5VyVSQ0JYLNu/sPv4LdRpG1p7SIEJs syncoid@francopuccini.casa

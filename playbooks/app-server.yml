@@ -1,17 +1,36 @@
+---
+
 - name: Configure app server
   hosts: app
   tasks:
-    - name: Start Docker service
-      ansible.builtin.systemd:
-        state: started
-        enabled: true
-        masked: false
-        name: docker.service
-      tags: services
 
-    - name: Nextcloud cronjob
-      ansible.builtin.cron:
-        name: nextcloud-cron
-        minute: "*/5"
-        job: docker exec --user www-data nextcloud php -d memory_limit=-1 -f /var/www/html/cron.php
-      tags: backup
+    - name: Ensure /srv directory exists
+      ansible.builtin.file:
+        path: /srv
+        owner: root
+        group: root
+        mode: 0755
+        state: directory
+
+    - name: Install app components
+      ansible.posix.synchronize:
+        src: apps/
+        dest: /srv
+        compress: false
+        owner: false
+        group: false
+
+    - name: Template Docker env file
+      ansible.builtin.template:
+        src: "apps/{{ app }}.env.j2"
+        dest: "/srv/{{ app }}/.env"
+        mode: 0600
+      loop: "{{ lookup('community.general.filetree', 'apps/') }}"
+      when: item['state'] == 'directory'
+
+    - name: Symlink Nextcloud cronjob
+      ansible.builtin.file:
+        src: /srv/nextcloud/cron
+        dest: /etc/cron.d/nextcloud
+        state: link
+        force: true

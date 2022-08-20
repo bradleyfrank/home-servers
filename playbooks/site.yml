@@ -1,3 +1,5 @@
+---
+
 - name: Import bootstrap playbook
   ansible.builtin.import_playbook: app-server.yml
 

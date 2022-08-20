@@ -1,3 +1,5 @@
+---
+
 - name: Setup zfs backups
   hosts: zfs:!backup
   tasks:

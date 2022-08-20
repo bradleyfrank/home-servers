@@ -1,3 +1,5 @@
+---
+
 - name: Print disk info
   hosts: all
   tasks:

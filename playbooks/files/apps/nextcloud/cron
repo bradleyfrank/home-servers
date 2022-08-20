@@ -1,0 +1,1 @@
+*/5 * * * * root docker exec --user www-data nextcloud php -d memory_limit=-1 -f /var/www/html/cron.php

@@ -1,3 +1,5 @@
+---
+
 - name: Configure operating system
   hosts: all
 

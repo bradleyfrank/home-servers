@@ -47,35 +47,11 @@ zpool create VDEV_NAME -f -o ashift=12 -O xattr=sa -O compression=lz4 -O atime=o
   mirror wwn-X wwn-Y mirror wwn-Z wwn-N
 ```
 
-## Containers
-
-Install and run Docker:
-
-```bash
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-add-apt-repository \
- "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-apt install -y containerd.io docker-ce docker-ce-cli docker-compose
-systemctl enable --now docker
-```
-
-Create internal Docker networks:
-
-```bash
-docker network create proxy
-docker network create nextcloud
-```
-
-### Traefik
-
-```bash
-touch /srv/home-server/apps/traefik2/acme.json
-chmod 0600 /srv/home-server/apps/traefik2/acme.json
-cd /srv/home-server/apps/traefik2 && docker-compose up -d
-```
+## Apps
 
 ### Plex
 
 First run only:
+
 1. Get Plex claim code: https://www.plex.tv/claim
 2. Update `plex/docker-compose` with claim code

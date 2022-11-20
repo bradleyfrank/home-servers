@@ -55,6 +55,3 @@ packages:
   - xsel
   - xz-utils
   - zfsutils-linux
-  - zsh
-  - zsh-autosuggestions
-  - zsh-syntax-highlighting

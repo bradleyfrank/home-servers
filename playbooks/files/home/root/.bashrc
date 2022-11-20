@@ -41,7 +41,14 @@ alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 
-[[ -f ~/.bash_aliases ]] && source ~/.bash_aliases
+# other aliases
+alias iowatch='watch -n 1 iostat -xy --human 1 1'
+alias ipa='ip -c a'
+alias lsblk='lsblk -o "NAME,FSTYPE,SIZE,UUID,MOUNTPOINT"'
+alias lsports='lsof -i -P -n'
+alias proc='ps -e --forest -o pid,ppid,user,time,cmd'
+alias pubip='dig myip.opendns.com @resolver1.opendns.com'
+alias timestamp='date +%F_%T | tr -d ":-" | tr "_" "-"'
 
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile

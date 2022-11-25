@@ -21,12 +21,12 @@
         group: false
 
     - name: Template Docker env file
+      loop: "{{ lookup('community.general.filetree', 'apps/') }}"
+      when: item['state'] == 'directory'
       ansible.builtin.template:
         src: "apps/{{ app }}.env.j2"
         dest: "/srv/{{ app }}/.env"
         mode: 0600
-      loop: "{{ lookup('community.general.filetree', 'apps/') }}"
-      when: item['state'] == 'directory'
 
     - name: Symlink Nextcloud cronjob
       ansible.builtin.file:

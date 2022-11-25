@@ -59,23 +59,23 @@
 
     - name: Install gpg keys
       tags: [packages, gpg]
+      loop: "{{ repos }}"
+      loop_control:
+        label: "{{ item['name'] }}"
       ansible.builtin.apt_key:
         url: "{{ item['key'] | default(omit) }}"
         keyring: "{{ item['keyring'] | default(omit) }}"
         id: "{{ item['id'] | default(omit) }}"
         keyserver: "{{ item['keyserver'] | default(omit) }}"
-      loop: "{{ repos }}"
-      loop_control:
-        label: "{{ item['name'] }}"
 
     - name: Install repositories
       tags: [packages, repositories]
-      ansible.builtin.apt_repository:
-        repo: "{{ item['repo'] }}"
-        filename: "{{ item['name'] }}"
       loop: "{{ repos }}"
       loop_control:
         label: "{{ item['name'] }}"
+      ansible.builtin.apt_repository:
+        repo: "{{ item['repo'] }}"
+        filename: "{{ item['name'] }}"
 
     - name: Install system packages
       tags: [packages, apt]
@@ -90,22 +90,23 @@
 
     - name: Start and enable services
       tags: services
+      loop: "{{ services }}"
       ansible.builtin.systemd:
         state: started
         masked: false
         name: "{{ item }}"
-      loop: "{{ services }}"
 
     - name: Create smartd config file
       tags: [smartd, services]
+      notify: Restart smartd
       ansible.builtin.template:
         src: conf/smartd.j2
         dest: /etc/smartd.conf
         mode: 0644
-      notify: Restart smartd
 
     - name: Enable persistent journald storage
       tags: [logs, services]
+      notify: Restart journald
       community.general.ini_file:
         path: /etc/systemd/journald.conf
         section: Journal
@@ -113,7 +114,6 @@
         value: auto
         no_extra_spaces: true
         mode: 0644
-      notify: Restart journald
 
     - name: Patch fwupd-refresh
       tags: services
@@ -126,11 +126,11 @@
             mode: 0750
             state: directory
         - name: Create override config file
+          notify: Restart fwupd-refresh
           ansible.builtin.copy:
             src: conf/fwupd-refresh.conf
             dest: /etc/systemd/system/fwupd-refresh.service.d/override.conf
             mode: 0644
-          notify: Restart fwupd-refresh
 
     - name: Mask nfs-blkmap
       tags: services
@@ -157,13 +157,13 @@
 
     - name: Allow ports through firewall
       tags: [security, firewall]
+      loop: "{{ ufw_rules }}"
+      loop_control:
+        label: "{{ item['desc'] }}"
       community.general.ufw:
         name: "{{ item['name'] | default(omit) }}"
         port: "{{ item['port'] | default(omit) }}"
         rule: "{{ item['rule'] | default('allow') }}"
-      loop: "{{ ufw_rules }}"
-      loop_control:
-        label: "{{ item['desc'] }}"
 
     - name: Secure SSH settings
       tags: [security, ssh]
@@ -204,45 +204,45 @@
 
     - name: Create local users
       tags: users
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item['name'] }}"
       ansible.builtin.user:
         name: "{{ item['name'] }}"
         shell: "{{ item['shell'] | default('/usr/bin/bash') }}"
         groups: "{{ item['groups'] }}"
-      loop: "{{ users }}"
-      loop_control:
-        label: "{{ item['name'] }}"
 
     - name: Install dotfiles
       tags: users
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item['name'] }}"
       ansible.builtin.copy:
         src: "home/{{ item['name'] }}/"
         dest: "/home/{{ item['name'] }}"
         owner: "{{ item['name'] }}"
         group: "{{ item['name'] }}"
         mode: 0644
-      loop: "{{ users }}"
-      loop_control:
-        label: "{{ item['name'] }}"
 
     - name: Add ssh key to authorized_keys
       tags: [users, ssh]
-      ansible.posix.authorized_key:
-        user: "{{ item['name'] }}"
-        key: "{{ item['key'] }}"
       loop: "{{ users }}"
       loop_control:
         label: "{{ item['name'] }}"
+      ansible.posix.authorized_key:
+        user: "{{ item['name'] }}"
+        key: "{{ item['key'] }}"
 
 
     # === ZFS datasets === #
 
     - name: Create ZFS datasets
       tags: zfs
+      loop: "{{ zfs['datasets'] }}"
+      when: zfs['datasets'] is defined
       community.general.zfs:
         name: "{{ item }}"
         state: present
-      loop: "{{ zfs['datasets'] }}"
-      when: zfs['datasets'] is defined
 
 
     # === Backups === #

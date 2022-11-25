@@ -1,0 +1,35 @@
+---
+
+- name: Setup zfs snapshots and backups
+  hosts: zfs:!backup
+  tasks:
+
+    - name: Write sanoid config file
+      tags: snapshots
+      ansible.builtin.template:
+        src: conf/sanoid.conf.j2
+        dest: /etc/sanoid/sanoid.conf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Delete default sanoid config
+      tags: snapshots
+      ansible.builtin.file:
+        path: /etc/sanoid/sanoid.defaults.conf
+        state: absent
+
+    - name: Create cronjobs for syncoid
+      tags: backup
+      loop: "{{ zfs['pools'] }}"
+      vars:
+        server: "{{ hostvars['home-backup-01']['ansible_host'] }}"
+        sshkey: /home/syncoid/.ssh/id_ed25519
+        src_pool: "{{ item }}"
+        dest_pool: "backup/{{ item }}"
+      ansible.builtin.cron:
+        name: "syncoid job for {{ item }} zfs pool"
+        cron_file: "syncoid-{{ item }}-pool"
+        special_time: daily
+        user: syncoid
+        job: "syncoid --sshkey={{ sshkey }} --recursive {{ src_pool }} syncoid@{{ server }}:{{ dest_pool }}"

@@ -1,22 +1,9 @@
 services:
   traefik:
-    container_name: "traefik"
+    container_name: traefik
     depends_on:
       - socket-proxy
     image: "traefik:v2.8"
-    networks:
-      - traefik
-    ports:
-      - "80:80"
-      - "443:443"
-    restart: always
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ./traefik.yml:/traefik.yml:ro
-      - ./rules:/rules:ro
-      - ./letsencrypt:/letsencrypt
     labels:
       - "traefik.enable=true"
       # global redirect to https
@@ -36,6 +23,19 @@ services:
       - "traefik.http.middlewares.redirect-root-to-www.redirectregex.replacement=https://www.${DOMAIN}.${TLD}/$${1}"
       # Watchtower Update
       - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      - traefik
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./traefik.yml:/traefik.yml:ro
+      - ./rules:/rules:ro
+      - ./letsencrypt:/letsencrypt
 
   socket-proxy:
     container_name: traefik-socket-proxy
@@ -52,4 +52,4 @@ services:
 
 networks:
   traefik:
-    name: traefik
+    external: true

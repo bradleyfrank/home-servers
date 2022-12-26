@@ -13,12 +13,6 @@
         group: root
         mode: 0644
 
-    - name: Delete default sanoid config
-      tags: snapshots
-      ansible.builtin.file:
-        path: /etc/sanoid/sanoid.defaults.conf
-        state: absent
-
     - name: Create cronjobs for syncoid
       tags: backup
       loop: "{{ zfs['pools'] }}"

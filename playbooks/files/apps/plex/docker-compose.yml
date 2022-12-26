@@ -1,3 +1,5 @@
+---
+
 services:
   plex:
     container_name: plex
@@ -12,17 +14,12 @@ services:
     image: plexinc/pms-docker:plexpass
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.plex.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.plex.entrypoints=https"
+      - "traefik.http.routers.plex.tls=true"
+      - "traefik.http.routers.plex.tls.certresolver=http"
       - "traefik.http.services.plex.loadbalancer.server.port=32400"
-      # Routers
-      - "traefik.http.routers.nextcloud.service=plex"
-      - "traefik.http.routers.nextcloud.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.nextcloud.entrypoints=https"
-      - "traefik.http.routers.nextcloud.tls=true"
-      - "traefik.http.routers.nextcloud.tls.certresolver=http"
-      # Watchtower
       - "com.centurylinklabs.watchtower.enable=true"
-
     networks:
       - traefik
     ports:
@@ -43,4 +40,4 @@ services:
 
 networks:
   traefik:
-    name: traefik
+    external: true

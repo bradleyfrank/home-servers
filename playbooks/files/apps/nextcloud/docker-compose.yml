@@ -29,22 +29,22 @@ services:
       - nextcloud-redis
     environment:
       - TZ=America/New_York
-      - VIRTUAL_HOST=${DOMAIN}
+      - VIRTUAL_HOST=${FQDN}
       - REDIS_HOST=nextcloud-redis
       - APACHE_DISABLE_REWRITE_IP=1
-      - TRUSTED_PROXIES=172.18.0.0/16 ${DOMAIN} traefik
-      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN}
+      - TRUSTED_PROXIES=172.18.0.0/16 ${FQDN} traefik
+      - NEXTCLOUD_TRUSTED_DOMAINS=${FQDN}
     image: nextcloud:24
     hostname: nextcloud-app
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.nextcloud.rule=Host(`${FQDN}`)"
       - "traefik.http.routers.nextcloud.entrypoints=https"
       - "traefik.http.routers.nextcloud.tls=true"
       - "traefik.http.routers.nextcloud.tls.certresolver=http"
       - "traefik.http.routers.nextcloud.middlewares=nextcloud-headers,nextcloud-dav-redirect"
       - "traefik.http.middlewares.nextcloud-headers.headers.customFrameOptionsValue=SAMEORIGIN"
-      - "traefik.http.middlewares.nextcloud-headers.headers.contentSecurityPolicy=frame-ancestors 'self' ${DOMAIN}"
+      - "traefik.http.middlewares.nextcloud-headers.headers.contentSecurityPolicy=frame-ancestors 'self' ${FQDN}"
       - "traefik.http.middlewares.nextcloud-headers.headers.stsSeconds=15552000"
       - "traefik.http.middlewares.nextcloud-headers.headers.stsIncludeSubdomains=true"
       - "traefik.http.middlewares.nextcloud-headers.headers.stsPreload=true"

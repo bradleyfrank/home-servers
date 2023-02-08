@@ -6,18 +6,19 @@
   handlers:
     - name: Restart journald
       ansible.builtin.systemd:
-        name: systemd-journald.service
-        state: reloaded
+        name: systemd-journald
+        state: restarted
+        daemon_reload: true
 
     - name: Restart smartd
       ansible.builtin.systemd:
-        name: smartmontools.service
-        state: reloaded
+        name: smartmontools
+        state: restarted
 
     - name: Restart fwupd-refresh
       ansible.builtin.systemd:
-        name: fwupd-refresh.service
-        state: reloaded
+        name: fwupd-refresh
+        state: restarted
         daemon_reload: true
 
   tasks:
@@ -54,6 +55,10 @@
         state: link
         force: true
 
+    - name: Remove snapd
+      tags: snapd
+      ansible.builtin.import_role:
+        name: bodsch.snapd
 
     # === Packages === #
 
@@ -166,19 +171,15 @@
         rule: "{{ item['rule'] | default('allow') }}"
 
     - name: Secure SSH settings
-      tags: [security, ssh]
+      tags: [hardening]
       vars:
-        ssh_kex:
-          - sntrup761x25519-sha512@openssh.com
-          - curve25519-sha256@libssh.org
-          - diffie-hellman-group-exchange-sha256
         ssh_allow_users: "{{ users | map(attribute='name') | join(' ') }} deploy"
         sftp_enabled: true
       ansible.builtin.import_role:
         name: devsec.hardening.ssh_hardening
 
     - name: Secure OS settings
-      tags: security
+      tags: [hardening]
       ansible.builtin.import_role:
         name: devsec.hardening.os_hardening
 
@@ -232,17 +233,6 @@
       ansible.posix.authorized_key:
         user: "{{ item['name'] }}"
         key: "{{ item['key'] }}"
-
-
-    # === ZFS datasets === #
-
-    - name: Create ZFS datasets
-      tags: zfs
-      loop: "{{ zfs['datasets'] }}"
-      when: zfs['datasets'] is defined
-      community.general.zfs:
-        name: "{{ item }}"
-        state: present
 
 
     # === Backups === #

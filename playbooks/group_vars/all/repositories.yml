@@ -1,8 +1,12 @@
 ---
 
+arch:
+  aarch64: arm64
+  x86_64: amd64
+
 repos:
   - name: docker
-    repo: |
-      deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable
-    key: https://download.docker.com/linux/ubuntu/gpg
     keyring: /usr/share/keyrings/docker-archive-keyring.gpg
+    repo: |
+      deb [arch={{ arch[ansible_architecture] }} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable
+    key: https://download.docker.com/linux/ubuntu/gpg

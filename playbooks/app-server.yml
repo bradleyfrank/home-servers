@@ -20,13 +20,37 @@
         owner: false
         group: false
 
-    - name: Template Docker env file
+    - name: Create local users
+      loop: "{{ app_users }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      ansible.builtin.user:
+        name: "{{ item['name'] }}"
+        shell: "{{ item['shell'] | default('/usr/bin/bash') }}"
+        groups: "{{ item['groups'] }}"
+
+    - name: Get app users UID
+      loop: "{{ app_users }}"
+      ansible.builtin.getent
+        database: passwd
+        key: "{{ item['name'] }}"
+
+    - name: Get 'staff' GID
+      ansible.builtin.getent
+        database: group
+        key: staff
+
+    - name: Template Docker env files
       loop: "{{ lookup('community.general.filetree', 'apps/') }}"
       when: item['state'] == 'directory'
       ansible.builtin.template:
         src: "apps/{{ app }}.env.j2"
         dest: "/srv/{{ app }}/.env"
         mode: 0600
+
+    - name: Create traefik network
+      community.docker.docker_network:
+        name: traefik
 
     - name: Symlink Nextcloud cronjob
       ansible.builtin.file:

@@ -6,15 +6,15 @@ services:
     environment:
       - ADVERTISE_IP="${IP_ADDRESS}:32400"
       - HOSTNAME="docker-plex"
-      - PLEX_CLAIM=${PLEX_CLAIM}
-      - PLEX_GID="7539"
-      - PLEX_UID="7539"
+      - PLEX_CLAIM="${PLEX_CLAIM}"
+      - PLEX_GID="${GID}"
+      - PLEX_UID="${UID}"
       - TZ="America/New_York"
     hostname: plex
     image: plexinc/pms-docker:plexpass
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.plex.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.plex.rule=Host(`${FQDN}`)"
       - "traefik.http.routers.plex.entrypoints=https"
       - "traefik.http.routers.plex.tls=true"
       - "traefik.http.routers.plex.tls.certresolver=http"
@@ -37,6 +37,8 @@ services:
       - /data/appdata/plex:/config
       - /data/cache/plex:/transcode
       - /data/userdata/media:/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
 networks:
   traefik:

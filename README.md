@@ -5,10 +5,14 @@
 Set desired IP address: `hostIP="192.168.1.XXX"`
 
 ```sh
-cat << EOF > /etc/netplan/00-home.conf
+# Remove pre-existing configs
+sudo rm /etc/netplan/00-installer-config*
+
+# Install static config
+cat << EOF | sudo tee /etc/netplan/00-home.conf
 network:
   ethernets:
-      $(ip --brief -4 address show | grep -E '^e[n|m]' | awk '{print $1}'):
+    $(ip --brief -4 address show | grep -E '^e[n|m]' | awk '{print $1}'):
       dhcp4: no
       addresses: [$hostIP/24]
       routes:
@@ -18,25 +22,38 @@ network:
         addresses: [192.168.1.1]
   version: 2
   renderer: NetworkManager
+EOF
 ```
 
 ```sh
-useradd --create-home --user-group --shell /bin/bash --comment "Ansible user" deploy > /dev/null
-mkdir /home/deploy/.ssh > /dev/null && chmod 0700 /home/deploy/.ssh
-cat << 'EOF' > /home/deploy/.ssh/authorized_keys
+sudo useradd --create-home --user-group --shell /bin/bash --comment "Ansible user" ansible > /dev/null
+sudo mkdir /home/ansible/.ssh > /dev/null
+sudo chmod 0700 /home/ansible/.ssh
+cat << 'EOF' | sudo tee /home/ansible/.ssh/authorized_keys
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHXi9rxK1HI1v2QOrjupf6XM9evD2vKfw3msmUbWlb7n ansible@francopuccini.casa
 EOF
-chown -R deploy:deploy /home/deploy/.ssh
-cat << EOF > /etc/sudoers.d/deploy
-deploy ALL=NOPASSWD: ALL
+sudo chown -R ansible:ansible /home/ansible/.ssh
+cat << EOF | sudo tee /etc/sudoers.d/ansible
+ansible ALL=NOPASSWD: ALL
 EOF
+```
+
+## Packages
+
+```sh
+sudo apt-get update && sudo apt-get upgrade -y
+sudo apt-get install zfsutils-linux
 ```
 
 ## File System
 
 ```sh
 # Identify the disks for the zfs pool:
-lsblk -o NAME,SIZE,MODEL,WWN -I8 -dn -x SIZE
+sudo lsblk -o NAME,SIZE,MODEL,WWN,TRAN -I8 -dn -x SIZE
+
+# Import and upgrade pools if applicable:
+sudo zpool import -f <NAME>
+sudo zpool upgrade <NAME>
 
 # Remove any existing partitions from the target disks:
 for sd in sdX sdY sdZ sdN; do sudo parted -s /dev/$sd mklabel GPT; done

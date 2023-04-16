@@ -21,6 +21,15 @@
         state: restarted
         daemon_reload: true
 
+    - name: Restart docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+
+    - name: Refresh pro config
+      ansible.builtin.command:
+        cmd: pro refresh config
+
   tasks:
 
     # === System Settings === #
@@ -55,10 +64,15 @@
         state: link
         force: true
 
-    - name: Remove snapd
-      tags: snapd
-      ansible.builtin.import_role:
-        name: bodsch.snapd
+    - name: Disable Canonical news in apt commands
+      tags: pro
+      notify: Refresh pro config
+      ansible.builtin.copy:
+        src: conf/uaclient.conf
+        dest: /etc/ubuntu-advantage/uaclient.conf
+        owner: root
+        group: root
+        mode: 0644
 
     # === Packages === #
 
@@ -94,7 +108,7 @@
     # === Services === #
 
     - name: Start and enable services
-      tags: services
+      tags: [services]
       loop: "{{ services }}"
       ansible.builtin.systemd:
         state: started
@@ -102,7 +116,7 @@
         name: "{{ item }}"
 
     - name: Create smartd config file
-      tags: [smartd, services]
+      tags: [services, smartd]
       notify: Restart smartd
       ansible.builtin.template:
         src: conf/smartd.j2
@@ -110,7 +124,7 @@
         mode: 0644
 
     - name: Enable persistent journald storage
-      tags: [logs, services]
+      tags: [services, logs]
       notify: Restart journald
       community.general.ini_file:
         path: /etc/systemd/journald.conf
@@ -121,7 +135,7 @@
         mode: 0644
 
     - name: Patch fwupd-refresh
-      tags: services
+      tags: [services, fwupd]
       block:
         - name: Create override directory
           ansible.builtin.file:
@@ -138,10 +152,18 @@
             mode: 0644
 
     - name: Mask nfs-blkmap
-      tags: services
+      tags: [services, nfs]
       ansible.builtin.systemd:
         name: nfs-blkmap.service
         masked: true
+
+    - name: Install Docker config
+      tags: [services, docker]
+      notify: Restart docker
+      ansible.builtin.copy:
+        src: conf/docker.json
+        dest: /etc/docker/daemon.json
+        mode: 0640
 
 
     # === Security Settings === #
@@ -212,6 +234,9 @@
         name: "{{ item['name'] }}"
         shell: "{{ item['shell'] | default('/usr/bin/bash') }}"
         groups: "{{ item['groups'] }}"
+        password: "{{ item['password'] | default(omit) }}"
+        password_expire_max: -1
+        update_password: on_create
 
     - name: Install dotfiles
       tags: users

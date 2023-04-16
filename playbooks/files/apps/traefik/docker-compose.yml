@@ -1,8 +1,6 @@
 services:
   traefik:
     container_name: traefik
-    depends_on:
-      - socket-proxy
     image: "traefik:v2.8"
     labels:
       - "traefik.enable=true"
@@ -14,7 +12,7 @@ services:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
       # redirect root to www
-      - "traefik.http.routers.root.rule=host(`${DOMAIN}.${TLD}`)"
+      - "traefik.http.routers.root.rule=host(`${FQDN}`)"
       - "traefik.http.routers.root.entrypoints=https"
       - "traefik.http.routers.root.middlewares=redirect-root-to-www"
       - "traefik.http.routers.root.tls=true"
@@ -32,23 +30,11 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/localtime:/etc/localtime:ro
       - ./traefik.yml:/traefik.yml:ro
       - ./rules:/rules:ro
       - ./letsencrypt:/letsencrypt
-
-  socket-proxy:
-    container_name: traefik-socket-proxy
-    environment:
-      CONTAINERS: 1
-    image: tecnativa/docker-socket-proxy
-    networks:
-      - traefik
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
 
 networks:
   traefik:

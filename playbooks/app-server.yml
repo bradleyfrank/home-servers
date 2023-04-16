@@ -21,31 +21,31 @@
         group: false
 
     - name: Create local users
-      loop: "{{ app_users }}"
+      loop: "{{ apps | dict2items }}"
       loop_control:
-        label: "{{ item['name'] }}"
+        label: "{{ item['key'] }}"
       ansible.builtin.user:
-        name: "{{ item['name'] }}"
-        shell: "{{ item['shell'] | default('/usr/bin/bash') }}"
-        groups: "{{ item['groups'] }}"
-
-    - name: Get app users UID
-      loop: "{{ app_users }}"
-      ansible.builtin.getent
-        database: passwd
-        key: "{{ item['name'] }}"
+        name: "{{ item['key'] }}"
+        shell: /usr/sbin/nologin
+        groups: [staff]
+        create_home: false
+        expires: -1
+        password_expire_max: -1
+        uid: "{{ item['value']['system_uid'] }}"
+      when: item['value']['system_account']
 
     - name: Get 'staff' GID
-      ansible.builtin.getent
+      ansible.builtin.getent:
         database: group
         key: staff
 
     - name: Template Docker env files
-      loop: "{{ lookup('community.general.filetree', 'apps/') }}"
-      when: item['state'] == 'directory'
+      loop: "{{ apps | dict2items }}"
+      loop_control:
+        label: "{{ item['key'] }}"
       ansible.builtin.template:
-        src: "apps/{{ app }}.env.j2"
-        dest: "/srv/{{ app }}/.env"
+        src: "apps/{{ item['key'] }}.env.j2"
+        dest: "/srv/{{ item['key'] }}/.env"
         mode: 0600
 
     - name: Create traefik network

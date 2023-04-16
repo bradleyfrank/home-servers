@@ -1,0 +1,8 @@
+---
+
+users:
+  - name: bfrank
+    groups: ['sudo']
+    password: $6$G6aJPH5xm7JuDhZ/$z2hiPguEBV6.7GW/uCGEiF7xETyfP.pYbMXJRf7ehtOFX7eRgHMpZvbCBMt.JU9kn5/TMt9nJtg63BrgDThJ00
+    key: |
+      ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICSleNkFQENZSjrOUIPbMVYTN5P8ZoLZyZn21jII4SIq bfrank

@@ -7,5 +7,3 @@ ufw_rules:
     port: http
   - desc: allow https
     port: https
-  - desc: allow cockpit
-    name: cockpit

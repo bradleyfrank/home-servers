@@ -3,7 +3,6 @@
 packages:
   - apt-file
   - bat
-  - cockpit
   - containerd.io
   - ctop
   - dictd
@@ -30,6 +29,7 @@ packages:
   - nmap
   - p7zip-*
   - pciutils
+  - postfix
   - pwgen
   - python3
   - python3-dev
@@ -37,7 +37,6 @@ packages:
   - qemu-system-x86  # kvm
   - remmina
   - rename
-  - sanoid
   - shellcheck
   - smartmontools
   - ssh

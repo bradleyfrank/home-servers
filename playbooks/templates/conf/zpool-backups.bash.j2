@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+{% for zpool in zpool_list['stdout_lines'] %}
+{% if zpool != 'backups' %}
+syncoid --recursive {{ zpool }} backups/{{ inventory_hostname }}/{{ zpool }}
+{% endif %}
+{% endfor %}

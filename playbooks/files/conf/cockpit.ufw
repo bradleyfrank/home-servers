@@ -1,4 +1,0 @@
-[cockpit]
-title=Cockpit web console for Linux servers
-description=The Cockpit Web Console enables users to administer GNU/Linux servers using a web browser.
-ports=9090/tcp

@@ -1,29 +1,70 @@
 ---
 
 - name: Setup zfs snapshots and backups
-  hosts: zfs:!backup
+  hosts: all
   tasks:
 
-    - name: Write sanoid config file
-      tags: snapshots
+    - name: Install Sanoid
+      tags: [packages]
+      ansible.builtin.apt:
+        name: sanoid
+        state: present
+        install_recommends: true
+        update_cache: true
+
+    - name: Create Sanoid config directory
+      tags: [config]
+      ansible.builtin.file:
+        path: /etc/sanoid
+        state: directory
+        owner: root
+        group: root
+        mode: "0775"
+
+    - name: Write Sanoid config file
+      tags: [config]
       ansible.builtin.template:
         src: conf/sanoid.conf.j2
         dest: /etc/sanoid/sanoid.conf
         owner: root
         group: root
-        mode: 0644
+        mode: "0644"
 
-    - name: Create cronjobs for syncoid
-      tags: backup
-      loop: "{{ zfs['pools'] }}"
-      vars:
-        server: "{{ hostvars['home-backup-01']['ansible_host'] }}"
-        sshkey: /home/syncoid/.ssh/id_ed25519
-        src_pool: "{{ item }}"
-        dest_pool: "backup/{{ item }}"
-      ansible.builtin.cron:
-        name: "syncoid job for {{ item }} zfs pool"
-        cron_file: "syncoid-{{ item }}-pool"
-        special_time: daily
+    - name: Grant syncoid sudo permissions
+      tags: [permissions]
+      community.general.sudoers:
+        name: syncoid
+        state: present
         user: syncoid
-        job: "syncoid --sshkey={{ sshkey }} --recursive {{ src_pool }} syncoid@{{ server }}:{{ dest_pool }}"
+        commands: ALL
+
+    - name: Create host backup dataset
+      tags: [backups]
+      ansible.builtin.zfs:
+        name: "backups/{{ inventory_hostname }}"
+        state: present
+
+    - name: Get list of zpools
+      tags: [cron, backups]
+      ansible.builtin.command:
+        cmd: zpool list -Ho name
+      register: zpool_list
+      changed_when: false
+
+    - name: Create syncoid backup script
+      tags: [cron, backups]
+      ansible.builtin.template:
+        src: conf/zpool-backups.bash.j2
+        dest: /usr/local/bin/zpool-backups
+        owner: root
+        group: root
+        mode: "0775"
+
+    - name: Create cronjob for syncoid
+      tags: [cron, backups]
+      ansible.builtin.cron:
+        name: "syncoid job for zpools"
+        cron_file: "syncoid"
+        special_time: daily
+        user: root
+        job: /usr/local/bin/zpool-backups

@@ -1,7 +1,7 @@
 ---
 
 - name: Configure app server
-  hosts: app
+  hosts: all
   tasks:
 
     - name: Ensure /srv directory exists
@@ -9,7 +9,7 @@
         path: /srv
         owner: root
         group: root
-        mode: 0755
+        mode: "0755"
         state: directory
 
     - name: Install app components
@@ -38,15 +38,6 @@
       ansible.builtin.getent:
         database: group
         key: staff
-
-    - name: Template Docker env files
-      loop: "{{ apps | dict2items }}"
-      loop_control:
-        label: "{{ item['key'] }}"
-      ansible.builtin.template:
-        src: "apps/{{ item['key'] }}.env.j2"
-        dest: "/srv/{{ item['key'] }}/.env"
-        mode: 0600
 
     - name: Create traefik network
       community.docker.docker_network:

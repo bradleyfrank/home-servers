@@ -8,6 +8,6 @@ host           {{ msmtprc['host'] }}
 port           {{ msmtprc['port'] }}
 from           {{ msmtprc['from'] }}
 user           {{ msmtprc['user'] }}
-password       {{ msmtprc['password'] }}
+password       {{ msmtprc_password }}
 
 account default : {{ msmtprc['account'] }}

@@ -12,7 +12,14 @@
         mode: "0755"
         state: directory
 
+    - name: Get 'staff' GID
+      tags: [docker, users]
+      ansible.builtin.getent:
+        database: group
+        key: staff
+
     - name: Install app components
+      tags: [docker]
       ansible.posix.synchronize:
         src: apps/
         dest: /srv
@@ -20,7 +27,20 @@
         owner: false
         group: false
 
+    - name: Create app Docker env files
+      tags: [docker]
+      loop: "{{ apps | dict2items }}"
+      loop_control:
+        label: "{{ item['key'] }}"
+      ansible.builtin.template:
+        src: "apps/{{ item['key'] }}.env.j2"
+        dest: "/srv/{{ item['key'] }}/.env"
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: Create local users
+      tags: [users]
       loop: "{{ apps | dict2items }}"
       loop_control:
         label: "{{ item['key'] }}"
@@ -34,18 +54,38 @@
         uid: "{{ item['value']['system_uid'] }}"
       when: item['value']['system_account']
 
-    - name: Get 'staff' GID
-      ansible.builtin.getent:
-        database: group
-        key: staff
+    - name: Create app mount points
+      tags: [docker, mounts]
+      loop: "{{ apps | community.general.json_query('*.mounts') | flatten }}"
+      loop_control:
+        label: "{{ item['path'] }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ item['path'] }}"
+        owner: "{{ item['owner'] }}"
+        group: "staff"
+        mode: "2775"
 
     - name: Create traefik network
+      tags: [docker]
       community.docker.docker_network:
         name: traefik
 
-    - name: Symlink Nextcloud cronjob
-      ansible.builtin.file:
-        src: /srv/nextcloud/cron
-        dest: /etc/cron.d/nextcloud
-        state: link
-        force: true
+    - name: Create cronjob for syncoid
+      tags: [cron, apps]
+      ansible.builtin.cron:
+        name: "syncoid job for zpools"
+        cron_file: "syncoid"
+        special_time: daily
+        user: root
+        job: /usr/local/bin/zpool-backups
+
+    - name: Create cronjob for Nextcloud
+      tags: [cron, apps]
+      ansible.builtin.cron:
+        name: "nextcloud background jobs"
+        cron_file: "nextcloud"
+        minute: "*/5"
+        user: root
+        job: docker exec --user www-data nextcloud-app php -d memory_limit=-1 -f /var/www/html/cron.php
+

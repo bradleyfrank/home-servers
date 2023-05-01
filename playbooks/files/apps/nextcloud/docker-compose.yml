@@ -9,7 +9,7 @@ services:
       - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
       - MARIADB_DATABASE=nextcloud
       - MARIADB_USER=nextcloud
-      - MARIADB_USER_PASSWORD=${MARIADB_USER_PASSWORD}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
     hostname: nextcloud-db
     image: mariadb:10.11
     labels:
@@ -32,9 +32,9 @@ services:
       - VIRTUAL_HOST=${FQDN}
       - REDIS_HOST=nextcloud-redis
       - APACHE_DISABLE_REWRITE_IP=1
-      - TRUSTED_PROXIES=172.18.0.0/16 ${FQDN} traefik
+      - TRUSTED_PROXIES=172.16.0.0/12 ${FQDN} traefik
       - NEXTCLOUD_TRUSTED_DOMAINS=${FQDN}
-    image: nextcloud:24
+    image: nextcloud:26
     hostname: nextcloud-app
     labels:
       - "traefik.enable=true"
@@ -61,7 +61,7 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - /data/appdata/nextcloud:/var/www/html
+      - /data/apps/nextcloud:/var/www/html
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
@@ -84,4 +84,4 @@ networks:
   traefik:
     external: true
   nextcloud:
-    name: nextcloud
+    external: true

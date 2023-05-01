@@ -76,7 +76,7 @@
       ansible.builtin.command: pro config set apt_news=false
       changed_when: false
 
-    - name: Forward root email
+    - name: Forward email
       tags: [mail]
       notify: Rebuild mail alias database
       ansible.builtin.template:
@@ -212,14 +212,14 @@
     # === Utilities === #
 
     - name: Create msmtprc
-      tags: [smtp]
+      tags: [mail]
       ansible.builtin.template:
         src: conf/msmtprc.j2
-        dest: /root/.msmtprc
+        dest: /etc/msmtprc
         mode: "0644"
 
     - name: Install mail.rc config
-      tags: [smtp]
+      tags: [mail]
       ansible.builtin.copy:
         src: conf/mail.rc
         dest: /etc/mail.rc

@@ -2,6 +2,7 @@ defaults
 auth           on
 tls            on
 logfile        /var/log/msmtp.log
+tls_starttls   off
 
 account        {{ msmtprc['account'] }}
 host           {{ msmtprc['host'] }}

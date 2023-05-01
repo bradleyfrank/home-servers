@@ -38,13 +38,36 @@ sanoid:
 
 # UID: LETTER * 36 + 1000
 apps:
+  jellyfin:
+    system_account: true
+    system_uid: 1360
+    subdomain: jellyfin
+    mounts:
+      - path: /data/homes/bfrank/media
+        owner: bfrank
+      - path: /data/apps/jellyfin
+        owner: jellyfin
   plex:
     system_account: true
     system_uid: 1600
     subdomain: plex
+    mounts:
+      - path: /data/apps/plex
+        owner: plex
+      - path: /data/cache/plex
+        owner: plex
+      - path: /data/media
+        owner: plex
   nextcloud:
     system_account: false
     subdomain: nextcloud
+    mounts:
+      - path: /data/db/nextcloud
+        owner: www-data
+      - path: /data/apps/nextcloud
+        owner: www-data
+      - path: /data/cache/nextcloud
+        owner: www-data
   traefik:
     system_account: false
     subdomain: traefik

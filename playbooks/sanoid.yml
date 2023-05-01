@@ -30,14 +30,6 @@
         group: root
         mode: "0644"
 
-    - name: Grant syncoid sudo permissions
-      tags: [permissions]
-      community.general.sudoers:
-        name: syncoid
-        state: present
-        user: syncoid
-        commands: ALL
-
     - name: Create host backup dataset
       tags: [backups]
       ansible.builtin.zfs:

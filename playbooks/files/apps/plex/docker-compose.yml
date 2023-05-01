@@ -34,9 +34,9 @@ services:
       - 32469:32469/tcp
     restart: always
     volumes:
-      - /data/appdata/plex:/config
+      - /data/apps/plex:/config
       - /data/cache/plex:/transcode
-      - /data/userdata/media:/data
+      - /data/media:/data
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 

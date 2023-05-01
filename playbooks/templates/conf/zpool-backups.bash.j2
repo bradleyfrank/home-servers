@@ -5,3 +5,5 @@
 syncoid --recursive {{ zpool }} backups/{{ inventory_hostname }}/{{ zpool }}
 {% endif %}
 {% endfor %}
+cd /backups || exit 1
+zfs mount -a

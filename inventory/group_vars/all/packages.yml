@@ -19,6 +19,7 @@ packages:
   - libmp4-info-perl
   - libvirt-clients  # kvm
   - linux-tools-generic
+  - mailutils
   - most
   - msmtp
   - msmtp-mta

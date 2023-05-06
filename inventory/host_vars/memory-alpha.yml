@@ -38,12 +38,19 @@ sanoid:
 
 # UID: LETTER * 36 + 1000
 apps:
+  freshrss:
+    subdomain: freshrss
+    mounts:
+      - path: /data/apps/freshrss
+        owner: root
+      - path: /data/db/freshrss
+        owner: root
   jellyfin:
     system_account: true
     system_uid: 1360
     subdomain: jellyfin
     mounts:
-      - path: /data/homes/bfrank/media
+      - path: /data/homes/bfrank/Media
         owner: bfrank
       - path: /data/apps/jellyfin
         owner: jellyfin

@@ -4,6 +4,14 @@
   hosts: all
   tasks:
 
+    - name: Set vm swappiness for Redis
+      tags: [docker, system]
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: '1'
+        state: present
+        sysctl_set: true
+
     - name: Ensure /srv directory exists
       ansible.builtin.file:
         path: /srv

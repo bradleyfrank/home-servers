@@ -84,4 +84,4 @@ networks:
   traefik:
     external: true
   nextcloud:
-    external: true
+    name: nextcloud

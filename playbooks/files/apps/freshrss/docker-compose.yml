@@ -1,0 +1,75 @@
+---
+
+services:
+  freshrss-db:
+    container_name: freshrss-db
+    environment:
+      - TZ=America/New_York
+      - POSTGRES_DATABASE=freshrss
+      - POSTGRES_USER=freshrss
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    hostname: freshrss-db
+    image: postgres:14
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    logging:
+      options:
+        max-size: 10m
+    networks:
+      - freshrss
+    restart: unless-stopped
+    volumes:
+      - /data/db/freshrss:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+  freshrss:
+    container_name: freshrss-app
+    depends_on:
+      - freshrss-db
+    environment:
+      - TZ=America/New_York
+      - VIRTUAL_HOST=${FQDN}
+      - REDIS_HOST=freshrss-redis
+      - APACHE_DISABLE_REWRITE_IP=1
+      - TRUSTED_PROXIES=172.16.0.0/12 ${FQDN} traefik
+      - NEXTCLOUD_TRUSTED_DOMAINS=${FQDN}
+    image: freshrss/freshrss:edge
+    hostname: freshrss-app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.freshrss.rule=Host(`${FQDN}`)"
+      - "traefik.http.routers.freshrss.entrypoints=https"
+      - "traefik.http.routers.freshrss.tls=true"
+      - "traefik.http.routers.freshrss.tls.certresolver=http"
+      - "traefik.http.routers.freshrss.middlewares=freshrss-headers,freshrss-dav-redirect"
+      - "traefik.http.middlewares.freshrss-headers.headers.customFrameOptionsValue=SAMEORIGIN"
+      - "traefik.http.middlewares.freshrss-headers.headers.contentSecurityPolicy=frame-ancestors 'self' ${FQDN}"
+      - "traefik.http.middlewares.freshrss-headers.headers.stsSeconds=15552000"
+      - "traefik.http.middlewares.freshrss-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.freshrss-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.freshrss-dav-redirect.redirectregex.regex=/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.freshrss-dav-redirect.redirectregex.replacement=/remote.php/dav/"
+      - "traefik.http.middlewares.freshrss-dav-redirect.redirectregex.permanent=true"
+      - "com.centurylinklabs.watchtower.enable=true"
+    logging:
+      options:
+        max-size: 10m
+    networks:
+      - traefik
+      - freshrss
+    ports:
+      - 8080:80
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /data/apps/freshrss:/var/www/html
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+networks:
+  traefik:
+    external: true
+  freshrss:
+    name: freshrss

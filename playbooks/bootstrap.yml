@@ -200,12 +200,12 @@
       vars:
         ssh_allow_users: "{{ users | map(attribute='name') | join(' ') }} ansible"
         sftp_enabled: true
-      ansible.builtin.import_role:
+      ansible.builtin.include_role:
         name: devsec.hardening.ssh_hardening
 
     - name: Secure OS settings
       tags: [hardening]
-      ansible.builtin.import_role:
+      ansible.builtin.include_role:
         name: devsec.hardening.os_hardening
 
 
@@ -243,7 +243,7 @@
 
     - name: Install dotfiles
       tags: [users]
-      loop: "{{ users }}"
+      loop: "{{ users + [{'name':'root'}] }}"
       loop_control:
         label: "{{ item['name'] }}"
       ansible.builtin.copy:

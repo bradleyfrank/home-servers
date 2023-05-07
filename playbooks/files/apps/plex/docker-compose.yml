@@ -3,6 +3,8 @@
 services:
   plex:
     container_name: plex
+    devices:
+      - /dev/dri:/dev/dri
     environment:
       - ADVERTISE_IP="${IP_ADDRESS}:32400"
       - HOSTNAME="docker-plex"

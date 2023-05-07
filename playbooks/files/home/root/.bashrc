@@ -60,4 +60,7 @@ fi
 bind "set mark-symlinked-directories on"
 bind "set visible-stats on"
 
+export EDITOR=vim
+export VISUAL=vim
+
 PS1="[\[\e[38;5;166m\]\u\[\e[0;0m\]@\[\e[38;5;33m\]\h\[\e[0;0m\]:\[\e[38;5;160m\]\W\[\e[0;0m\]]# "

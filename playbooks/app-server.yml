@@ -71,8 +71,8 @@
         state: directory
         path: "{{ item['path'] }}"
         owner: "{{ item['owner'] }}"
-        group: "staff"
-        mode: "2775"
+        group: "{{ item['group'] | default('staff') }}"
+        mode: "{{ item['mode'] | default('2775') }}"
 
     - name: Create traefik network
       tags: [docker]
@@ -96,4 +96,3 @@
         minute: "*/5"
         user: root
         job: docker exec --user www-data nextcloud-app php -d memory_limit=-1 -f /var/www/html/cron.php
-

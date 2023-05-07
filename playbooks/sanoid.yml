@@ -32,7 +32,7 @@
 
     - name: Create host backup dataset
       tags: [backups]
-      ansible.builtin.zfs:
+      community.general.zfs:
         name: "backups/{{ inventory_hostname }}"
         state: present
 
@@ -46,7 +46,7 @@
     - name: Create syncoid backup script
       tags: [cron, backups]
       ansible.builtin.template:
-        src: conf/zpool-backups.bash.j2
+        src: scripts/zpool-backups.bash.j2
         dest: /usr/local/bin/zpool-backups
         owner: root
         group: root

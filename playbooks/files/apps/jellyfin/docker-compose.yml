@@ -6,8 +6,8 @@ services:
     environment:
       - JELLYFIN_PublishedServerUrl="${FQDN}"
       - HOSTNAME="docker-jellyfin"
-      - PUID="${GID}"
-      - PGID="${UID}"
+      - PUID="${UID}"
+      - PGID="${GID}"
       - TZ="America/New_York"
     hostname: jellyfin
     image: lscr.io/linuxserver/jellyfin:latest
@@ -20,15 +20,10 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
     networks:
       - traefik
-    ports:
-      - 8096:8096
-      - 8920:8920 #optional
-      - 7359:7359/udp #optional
-      - 1900:1900/udp #optional
     restart: always
     volumes:
       - /data/apps/jellyfin:/config
-      - /homes/bfrank/media:/data/movies
+      - /data/homes/bfrank/Media:/data/movies
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 

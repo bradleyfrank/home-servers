@@ -80,7 +80,7 @@
       tags: [mail]
       notify: Rebuild mail alias database
       ansible.builtin.template:
-        src: conf/aliases
+        src: conf/aliases.j2
         dest: /etc/aliases
         mode: "0644"
 

@@ -35,6 +35,13 @@ apps:
         owner: www-data
       - path: /data/cache/nextcloud
         owner: lxd
+  shiori:
+    system_account: false
+    subdomain: shiori
+    mounts:
+      - path: /data/apps/shiori
+        owner: bfrank
+        group: bfrank
   traefik:
     system_account: false
     subdomain: traefik

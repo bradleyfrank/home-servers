@@ -1,0 +1,7 @@
+{% for group, settings in sanoid.items() %}
+[{{ group }}]
+  {% for key, value in settings.items() %}
+{{ key }} = {{ value }}
+  {% endfor %}
+
+{% endfor %}

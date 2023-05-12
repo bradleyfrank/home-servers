@@ -1,0 +1,6 @@
+---
+
+services:
+  - systemd-timesyncd.service
+  - smartmontools.service
+  - docker.service

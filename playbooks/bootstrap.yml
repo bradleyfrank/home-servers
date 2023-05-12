@@ -1,0 +1,263 @@
+---
+
+- name: Configure operating system
+  hosts: all
+
+  handlers:
+    - name: Restart journald
+      ansible.builtin.systemd:
+        name: systemd-journald
+        state: restarted
+        daemon_reload: true
+
+    - name: Restart smartd
+      ansible.builtin.systemd:
+        name: smartmontools
+        state: restarted
+
+    - name: Restart fwupd-refresh
+      ansible.builtin.systemd:
+        name: fwupd-refresh
+        state: restarted
+        daemon_reload: true
+
+    - name: Restart docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+
+    - name: Refresh pro config
+      ansible.builtin.command:
+        cmd: pro refresh config
+      changed_when: false
+
+    - name: Rebuild mail alias database
+      ansible.builtin.command:
+        cmd: newaliases
+      changed_when: false
+
+  tasks:
+
+    # === System Settings === #
+
+    - name: Update hostname
+      tags: [hostname]
+      block:
+        - name: Create entry in hosts file
+          ansible.builtin.lineinfile:
+            path: /etc/hosts
+            search_string: "127.0.0.1 {{ ansible_hostname }}"
+            line: "127.0.0.1 {{ inventory_hostname }}"
+            owner: root
+            group: root
+            mode: "0644"
+        - name: Set hostname system-wide
+          ansible.builtin.hostname:
+            name: "{{ inventory_hostname }}"
+
+    - name: Add DNS fallback
+      tags: [dns]
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#?FallbackDNS='
+        line: FallbackDNS=9.9.9.9 1.1.1.1 8.8.8.8
+
+    - name: Set timezone
+      tags: [ntp]
+      ansible.builtin.file:
+        src: /usr/share/zoneinfo/America/New_York
+        dest: /etc/localtime
+        state: link
+        force: true
+
+    - name: Disable APT News
+      tags: [pro]
+      notify: Refresh pro config
+      ansible.builtin.command: pro config set apt_news=false
+      changed_when: false
+
+    - name: Forward email
+      tags: [mail]
+      notify: Rebuild mail alias database
+      ansible.builtin.template:
+        src: conf/aliases.j2
+        dest: /etc/aliases
+        mode: "0644"
+
+    # === Packages === #
+
+    - name: Install gpg keys
+      tags: [packages, gpg]
+      loop: "{{ repos }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      ansible.builtin.apt_key:
+        url: "{{ item['key'] | default(omit) }}"
+        keyring: "{{ item['keyring'] | default(omit) }}"
+        id: "{{ item['id'] | default(omit) }}"
+        keyserver: "{{ item['keyserver'] | default(omit) }}"
+
+    - name: Install repositories
+      tags: [packages, repositories]
+      loop: "{{ repos }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      ansible.builtin.apt_repository:
+        repo: "{{ item['repo'] }}"
+        filename: "{{ item['name'] }}"
+
+    - name: Install system packages
+      tags: [packages, apt]
+      ansible.builtin.apt:
+        name: "{{ packages }}"
+        state: present
+        install_recommends: true
+        update_cache: true
+
+
+    # === Services === #
+
+    - name: Start and enable services
+      tags: [services]
+      loop: "{{ services }}"
+      ansible.builtin.systemd:
+        state: started
+        masked: false
+        name: "{{ item }}"
+
+    - name: Create smartd config file
+      tags: [services, smartd]
+      notify: Restart smartd
+      ansible.builtin.template:
+        src: conf/smartd.j2
+        dest: /etc/smartd.conf
+        mode: "0644"
+
+    - name: Enable persistent journald storage
+      tags: [services, logs]
+      notify: Restart journald
+      community.general.ini_file:
+        path: /etc/systemd/journald.conf
+        section: Journal
+        option: Storage
+        value: auto
+        no_extra_spaces: true
+        mode: "0644"
+
+    - name: Patch fwupd-refresh
+      tags: [services, fwupd]
+      block:
+        - name: Create override directory
+          ansible.builtin.file:
+            path: /etc/systemd/system/fwupd-refresh.service.d
+            owner: root
+            group: root
+            mode: "0750"
+            state: directory
+        - name: Create override config file
+          notify: Restart fwupd-refresh
+          ansible.builtin.copy:
+            src: conf/fwupd-refresh.conf
+            dest: /etc/systemd/system/fwupd-refresh.service.d/override.conf
+            mode: "0644"
+
+    - name: Mask nfs-blkmap
+      tags: [services, nfs]
+      ansible.builtin.systemd:
+        name: nfs-blkmap.service
+        masked: true
+
+    - name: Install Docker config
+      tags: [services, docker]
+      notify: Restart docker
+      ansible.builtin.copy:
+        src: conf/docker.json
+        dest: /etc/docker/daemon.json
+        mode: "0640"
+
+
+    # === Security Settings === #
+
+    - name: Enable UFW
+      tags: [security, firewall]
+      community.general.ufw:
+        state: enabled
+        default: deny
+        logging: "on"
+
+    - name: Allow ports through firewall
+      tags: [security, firewall]
+      loop: "{{ ufw_rules }}"
+      loop_control:
+        label: "{{ item['desc'] }}"
+      community.general.ufw:
+        name: "{{ item['name'] | default(omit) }}"
+        port: "{{ item['port'] | default(omit) }}"
+        rule: "{{ item['rule'] | default('allow') }}"
+
+    - name: Secure SSH settings
+      tags: [hardening]
+      vars:
+        ssh_allow_users: "{{ users | map(attribute='name') | join(' ') }} ansible"
+        sftp_enabled: true
+      ansible.builtin.include_role:
+        name: devsec.hardening.ssh_hardening
+
+    - name: Secure OS settings
+      tags: [hardening]
+      ansible.builtin.include_role:
+        name: devsec.hardening.os_hardening
+
+
+    # === Utilities === #
+
+    - name: Create msmtprc
+      tags: [mail]
+      ansible.builtin.template:
+        src: conf/msmtprc.j2
+        dest: /etc/msmtprc
+        mode: "0644"
+
+    - name: Install mail.rc config
+      tags: [mail]
+      ansible.builtin.copy:
+        src: conf/mail.rc
+        dest: /etc/mail.rc
+        mode: "0644"
+
+
+    # === Users === #
+
+    - name: Create local users
+      tags: [users]
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      ansible.builtin.user:
+        name: "{{ item['name'] }}"
+        shell: "{{ item['shell'] | default('/usr/bin/bash') }}"
+        groups: "{{ item['groups'] }}"
+        password: "{{ item['password'] | default(omit) }}"
+        password_expire_max: -1
+        update_password: on_create
+
+    - name: Install dotfiles
+      tags: [users]
+      loop: "{{ users + [{'name':'root'}] }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      ansible.builtin.copy:
+        src: "home/{{ item['name'] }}/"
+        dest: "/home/{{ item['name'] }}"
+        owner: "{{ item['name'] }}"
+        group: "{{ item['name'] }}"
+        mode: "0644"
+
+    - name: Add ssh key to authorized_keys
+      tags: [users, ssh]
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item['name'] }}"
+      ansible.posix.authorized_key:
+        user: "{{ item['name'] }}"
+        key: "{{ item['key'] }}"

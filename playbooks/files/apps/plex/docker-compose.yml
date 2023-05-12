@@ -1,0 +1,47 @@
+---
+
+services:
+  plex:
+    container_name: plex
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - ADVERTISE_IP="${IP_ADDRESS}:32400"
+      - HOSTNAME="docker-plex"
+      - PLEX_CLAIM="${PLEX_CLAIM}"
+      - PLEX_GID="${GID}"
+      - PLEX_UID="${UID}"
+      - TZ="America/New_York"
+    hostname: plex
+    image: plexinc/pms-docker:plexpass
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plex.rule=Host(`${FQDN}`)"
+      - "traefik.http.routers.plex.entrypoints=https"
+      - "traefik.http.routers.plex.tls=true"
+      - "traefik.http.routers.plex.tls.certresolver=http"
+      - "traefik.http.services.plex.loadbalancer.server.port=32400"
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      - traefik
+    ports:
+      - 1900:1900/udp
+      - 3005:3005/tcp
+      - 8324:8324/tcp
+      - 32400:32400/tcp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+      - 32469:32469/tcp
+    restart: always
+    volumes:
+      - /data/apps/plex:/config
+      - /data/cache/plex:/transcode
+      - /data/media:/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+networks:
+  traefik:
+    external: true

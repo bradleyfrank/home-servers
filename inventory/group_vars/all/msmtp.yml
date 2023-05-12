@@ -1,0 +1,10 @@
+---
+
+email: bradfrank@fastmail.com
+
+msmtprc:
+  account: fastmail
+  host: smtp.fastmail.com
+  port: 465
+  from: bradfrank@fastmail.com
+  user: bradfrank@fastmail.com

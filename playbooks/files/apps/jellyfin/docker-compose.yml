@@ -1,0 +1,32 @@
+---
+
+services:
+  jellyfin:
+    container_name: jellyfin
+    environment:
+      - JELLYFIN_PublishedServerUrl="${FQDN}"
+      - HOSTNAME="docker-jellyfin"
+      - PUID="${UID}"
+      - PGID="${GID}"
+      - TZ="America/New_York"
+    hostname: jellyfin
+    image: lscr.io/linuxserver/jellyfin:latest
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`${FQDN}`)"
+      - "traefik.http.routers.jellyfin.entrypoints=https"
+      - "traefik.http.routers.jellyfin.tls=true"
+      - "traefik.http.routers.jellyfin.tls.certresolver=http"
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      - traefik
+    restart: always
+    volumes:
+      - /data/apps/jellyfin:/config
+      - /data/homes/bfrank/Media:/data/movies
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+networks:
+  traefik:
+    external: true

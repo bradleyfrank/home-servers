@@ -1,0 +1,9 @@
+---
+
+# password = 'changeme'
+users:
+  - name: bfrank
+    groups: ['sudo']
+    password: $6$R1chxcl/0WME2Ble$8lTq0bmGwbq.wqS/R4FyIeIAuen1y43PB2hmHSvX9to.A1GHD6nh3fqyd.cKpRUsFXlogxoxl.kZPhc4DD2bR0
+    key: |
+      ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICSleNkFQENZSjrOUIPbMVYTN5P8ZoLZyZn21jII4SIq bfrank

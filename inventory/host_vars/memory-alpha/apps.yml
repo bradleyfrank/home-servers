@@ -1,0 +1,50 @@
+---
+
+# UID: LETTER * 36 + 1000
+apps:
+  jellyfin:
+    system_account: true
+    system_uid: 1360
+    subdomain: jellyfin
+    mounts:
+      - path: /data/homes/bfrank/Media
+        owner: bfrank
+        group: bfrank
+        mode: "0775"
+      - path: /data/apps/jellyfin
+        owner: jellyfin
+  plex:
+    system_account: true
+    system_uid: 1600
+    subdomain: plex
+    mounts:
+      - path: /data/apps/plex
+        owner: plex
+      - path: /data/cache/plex
+        owner: plex
+      - path: /data/media
+        owner: plex
+  nextcloud:
+    system_account: false
+    subdomain: nextcloud
+    mounts:
+      - path: /data/db/nextcloud
+        owner: lxd
+        group: docker
+      - path: /data/apps/nextcloud
+        owner: www-data
+      - path: /data/cache/nextcloud
+        owner: lxd
+  shiori:
+    system_account: false
+    subdomain: shiori
+    mounts:
+      - path: /data/apps/shiori
+        owner: bfrank
+        group: bfrank
+  traefik:
+    system_account: false
+    subdomain: traefik
+  watchtower:
+    system_account: false
+    subdomain: watchtower

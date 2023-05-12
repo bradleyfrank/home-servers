@@ -1,0 +1,98 @@
+---
+
+- name: Configure app server
+  hosts: all
+  tasks:
+
+    - name: Set vm swappiness for Redis
+      tags: [docker, system]
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: '1'
+        state: present
+        sysctl_set: true
+
+    - name: Ensure /srv directory exists
+      ansible.builtin.file:
+        path: /srv
+        owner: root
+        group: root
+        mode: "0755"
+        state: directory
+
+    - name: Get 'staff' GID
+      tags: [docker, users]
+      ansible.builtin.getent:
+        database: group
+        key: staff
+
+    - name: Install app components
+      tags: [docker]
+      ansible.posix.synchronize:
+        src: apps/
+        dest: /srv
+        compress: false
+        owner: false
+        group: false
+
+    - name: Create app Docker env files
+      tags: [docker]
+      loop: "{{ apps | dict2items }}"
+      loop_control:
+        label: "{{ item['key'] }}"
+      ansible.builtin.template:
+        src: "apps/{{ item['key'] }}.env.j2"
+        dest: "/srv/{{ item['key'] }}/.env"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create local users
+      tags: [users]
+      loop: "{{ apps | dict2items }}"
+      loop_control:
+        label: "{{ item['key'] }}"
+      ansible.builtin.user:
+        name: "{{ item['key'] }}"
+        shell: /usr/sbin/nologin
+        groups: [staff]
+        create_home: false
+        expires: -1
+        password_expire_max: -1
+        uid: "{{ item['value']['system_uid'] }}"
+      when: item['value']['system_account']
+
+    - name: Create app mount points
+      tags: [docker, mounts]
+      loop: "{{ apps | community.general.json_query('*.mounts') | flatten }}"
+      loop_control:
+        label: "{{ item['path'] }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ item['path'] }}"
+        owner: "{{ item['owner'] }}"
+        group: "{{ item['group'] | default('staff') }}"
+        mode: "{{ item['mode'] | default('2775') }}"
+
+    - name: Create traefik network
+      tags: [docker]
+      community.docker.docker_network:
+        name: traefik
+
+    - name: Create cronjob for syncoid
+      tags: [cron, apps]
+      ansible.builtin.cron:
+        name: "syncoid job for zpools"
+        cron_file: "syncoid"
+        special_time: daily
+        user: root
+        job: /usr/local/bin/zpool-backups
+
+    - name: Create cronjob for Nextcloud
+      tags: [cron, apps]
+      ansible.builtin.cron:
+        name: "nextcloud background jobs"
+        cron_file: "nextcloud"
+        minute: "*/5"
+        user: root
+        job: docker exec --user www-data nextcloud-app php -d memory_limit=-1 -f /var/www/html/cron.php

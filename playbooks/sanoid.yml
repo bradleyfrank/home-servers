@@ -1,0 +1,62 @@
+---
+
+- name: Setup zfs snapshots and backups
+  hosts: all
+  tasks:
+
+    - name: Install Sanoid
+      tags: [packages]
+      ansible.builtin.apt:
+        name: sanoid
+        state: present
+        install_recommends: true
+        update_cache: true
+
+    - name: Create Sanoid config directory
+      tags: [config]
+      ansible.builtin.file:
+        path: /etc/sanoid
+        state: directory
+        owner: root
+        group: root
+        mode: "0775"
+
+    - name: Write Sanoid config file
+      tags: [config]
+      ansible.builtin.template:
+        src: conf/sanoid.conf.j2
+        dest: /etc/sanoid/sanoid.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create host backup dataset
+      tags: [backups]
+      community.general.zfs:
+        name: "backups/{{ inventory_hostname }}"
+        state: present
+
+    - name: Get list of zpools
+      tags: [cron, backups]
+      ansible.builtin.command:
+        cmd: zpool list -Ho name
+      register: zpool_list
+      changed_when: false
+
+    - name: Create syncoid backup script
+      tags: [cron, backups]
+      ansible.builtin.template:
+        src: scripts/zpool-backups.bash.j2
+        dest: /usr/local/bin/zpool-backups
+        owner: root
+        group: root
+        mode: "0775"
+
+    - name: Create cronjob for syncoid
+      tags: [cron, backups]
+      ansible.builtin.cron:
+        name: "syncoid job for zpools"
+        cron_file: "syncoid"
+        special_time: daily
+        user: root
+        job: /usr/local/bin/zpool-backups

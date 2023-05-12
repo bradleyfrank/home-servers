@@ -1,0 +1,27 @@
+---
+
+services:
+  shiori:
+    container_name: shiori
+    environment:
+      - HOSTNAME="docker-shiori"
+      - TZ="America/New_York"
+    hostname: shiori
+    image: ghcr.io/go-shiori/shiori:v1.5.4
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.shiori.rule=Host(`${FQDN}`)"
+      - "traefik.http.routers.shiori.entrypoints=https"
+      - "traefik.http.routers.shiori.tls=true"
+      - "traefik.http.routers.shiori.tls.certresolver=http"
+    networks:
+      - traefik
+    restart: always
+    volumes:
+      - /data/apps/shiori:/shiori
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+networks:
+  traefik:
+    external: true

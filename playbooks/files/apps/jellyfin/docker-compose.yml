@@ -3,11 +3,13 @@
 services:
   jellyfin:
     container_name: jellyfin
+    devices:
+      - /dev/dri:/dev/dri
     environment:
       - JELLYFIN_PublishedServerUrl="${FQDN}"
       - HOSTNAME="docker-jellyfin"
-      - PUID="${UID}"
-      - PGID="${GID}"
+      - PUID=${UID}
+      - PGID=1000
       - TZ="America/New_York"
     hostname: jellyfin
     image: lscr.io/linuxserver/jellyfin:latest

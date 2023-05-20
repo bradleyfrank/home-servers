@@ -13,6 +13,8 @@ apps:
         mode: "0775"
       - path: /data/apps/jellyfin
         owner: jellyfin
+        group: bfrank
+        mode: "0750"
   plex:
     system_account: true
     system_uid: 1600

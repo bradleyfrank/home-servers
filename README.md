@@ -2,29 +2,6 @@
 
 ## Bootstrap
 
-Set desired IP address: `hostIP="192.168.1.XXX"`
-
-```sh
-# Remove pre-existing configs
-sudo rm /etc/netplan/00-installer-config*
-
-# Install static config
-cat << EOF | sudo tee /etc/netplan/00-home.conf
-network:
-  ethernets:
-    $(ip --brief -4 address show | grep -E '^e[n|m]' | awk '{print $1}'):
-      dhcp4: no
-      addresses: [$hostIP/24]
-      routes:
-        - to: default
-          via: 192.168.1.1
-      nameservers:
-        addresses: [192.168.1.1]
-  version: 2
-  renderer: NetworkManager
-EOF
-```
-
 ```sh
 sudo useradd --create-home --user-group --shell /bin/bash --comment "Ansible user" ansible > /dev/null
 sudo mkdir /home/ansible/.ssh > /dev/null
@@ -36,16 +13,17 @@ sudo chown -R ansible:ansible /home/ansible/.ssh
 cat << EOF | sudo tee /etc/sudoers.d/ansible
 ansible ALL=NOPASSWD: ALL
 EOF
+
+sudo apt-get update && sudo apt-get upgrade -y
 ```
 
-## Packages
+### Ansible: Bootstrap
 
 ```sh
-sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install zfsutils-linux
+ansible-playbook -i inventory/prod.ini playbooks/bootstrap.yml
 ```
 
-## File System
+## ZFS Setup
 
 ```sh
 # Identify the disks for the zfs pool:
@@ -59,12 +37,26 @@ sudo zpool upgrade <NAME>
 for sd in sdX sdY sdZ sdN; do sudo parted -s /dev/$sd mklabel GPT; done
 sudo reboot
 
-# Create the zfs pool with a mirror vdev:
-zpool create VDEV_NAME -f -o ashift=12 -O xattr=sa -O compression=lz4 -O atime=off -O recordsize=128K \
+# Create the zfs pools with a mirror vdev:
+sudo zpool create data -f -o ashift=12 -O xattr=sa -O compression=lz4 -O atime=off -O recordsize=128K \
   mirror wwn-X wwn-Y mirror wwn-Z wwn-N
+sudo zpool create kvm -f -o ashift=13 -O xattr=sa -O compression=lz4 -O atime=off -O recordsize=64K \
+  mirror wwn-A wwn-B
+```
+
+### Ansible: Sanoid
+
+```sh
+ansible-playbook -i inventory/prod.ini playbooks/sanoid.yml
 ```
 
 ## Apps
+
+### Ansible: Apps
+
+```sh
+ansible-playbook -i inventory/prod.ini playbooks/app-server.yml
+```
 
 ### Plex
 

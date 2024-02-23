@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+{{ ansible_managed }}
+
+if ! findmnt /backups; then
+  if ! zpool import backups; then
+    exit 1
+  fi
+fi
+
 {% for zpool in zpool_list['stdout_lines'] %}
 {% if zpool != 'backups' %}
 syncoid --recursive {{ zpool }} backups/{{ inventory_hostname }}/{{ zpool }}
